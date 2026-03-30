@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './config/firebase';
+import { auth } from '@/src/config/firebase';
+import { useAuth } from '../src/context/AuthContext';
+import { Globe as GoogleIcon } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
+  const { signInWithGoogle } = useAuth();
 
   const handleAuth = async () => {
     if (!email || !password) {
@@ -56,6 +59,18 @@ export default function LoginScreen() {
 
             <TouchableOpacity style={styles.primaryButton} onPress={handleAuth}>
               <Text style={styles.primaryButtonText}>{isLogin ? 'LOG IN' : 'SIGN UP'}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.divider}>
+              <View style={styles.line} />
+              <Text style={styles.dividerText}>OR</Text>
+              <View style={styles.line} />
+            </View>
+
+            <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogle}>
+               {/* Using Chrome icon as a proxy for Google */}
+              <GoogleIcon size={20} color="#000" style={{ marginRight: 10 }} />
+              <Text style={styles.googleButtonText}>CONTINUE WITH GOOGLE</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -129,12 +144,42 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   switchButton: {
-    marginTop: 25,
+    marginTop: 20,
     alignItems: 'center',
   },
   switchButtonText: {
     color: '#000',
     fontSize: 12,
     textDecorationLine: 'underline',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 25,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E5E5',
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    fontSize: 12,
+    color: '#999',
+    fontWeight: 'bold',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#000',
+    height: 55,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleButtonText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: 'bold',
+    letterSpacing: 1,
   },
 });

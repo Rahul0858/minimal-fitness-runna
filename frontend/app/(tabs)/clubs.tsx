@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useClub } from '../../src/context/ClubContext';
+import { useAuth } from '../../src/context/AuthContext';
 
 const INITIAL_CLUBS_DATA = [
   { id: '1', name: 'Downtown Runners', members: 120, joined: true, desc: 'Daily runs at 6AM.' },
@@ -15,44 +18,59 @@ const CHALLENGES_DATA = [
 ];
 
 export default function ClubsScreen() {
+  const { clubs, createClub, joinClub, leaveClub, loading } = useClub();
+  const { user } = useAuth();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'CLUBS' | 'CHALLENGES'>('CLUBS');
-  const [clubs, setClubs] = useState(INITIAL_CLUBS_DATA);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Modal State for Creating Club
   const [modalVisible, setModalVisible] = useState(false);
   const [newClubName, setNewClubName] = useState('');
   const [newClubDesc, setNewClubDesc] = useState('');
 
-  const handleJoinToggle = (clubId: string) => {
-    setClubs(prev => prev.map(club => {
-      if (club.id === clubId) {
-        const isJoining = !club.joined;
-        return {
-          ...club,
-          joined: isJoining,
-          members: isJoining ? club.members + 1 : club.members - 1
-        };
-      }
-      return club;
-    }));
+  const handleJoinToggle = (clubId: string, joined: boolean) => {
+    if (!user) {
+      Alert.alert('Login Required', 'You must be logged in to join clubs.');
+      return;
+    }
+    
+    if (joined) {
+      leaveClub(clubId, user.uid);
+    } else {
+      joinClub(clubId, { id: user.uid, name: user.email?.split('@')[0] || 'User' });
+    }
   };
 
-  const handleCreateClub = () => {
-    if (!newClubName.trim()) {
+  const handleCreateClub = async () => {
+    if (!newClubName.trim() || isSaving) {
       setModalVisible(false);
       return;
     }
-    const newClub = {
-      id: Date.now().toString(),
-      name: newClubName,
-      desc: newClubDesc || 'A new community club.',
-      members: 1,
-      joined: true,
-    };
-    setClubs((prev) => [newClub, ...prev]);
-    setModalVisible(false);
-    setNewClubName('');
-    setNewClubDesc('');
+
+    if (!user) {
+      Alert.alert('Error', 'Unauthorized');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await createClub({
+        name: newClubName,
+        desc: newClubDesc || 'A new community club.',
+        category: 'Run',
+        isPublic: true,
+        location: 'Global',
+      }, user.email?.split('@')[0] || 'User', user.uid);
+      
+      setModalVisible(false);
+      setNewClubName('');
+      setNewClubDesc('');
+    } catch (error) {
+      console.error('Failed to create club:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const renderClubs = () => (
@@ -66,14 +84,17 @@ export default function ClubsScreen() {
       
       {clubs.map((club) => (
         <View key={club.id} style={styles.clubItem}>
-          <View style={styles.clubInfo}>
+          <TouchableOpacity 
+            style={styles.clubInfo} 
+            onPress={() => router.push({ pathname: '/club/[id]', params: { id: club.id } })}
+          >
             <Text style={styles.clubName}>{club.name}</Text>
             {club.desc ? <Text style={styles.clubDesc}>{club.desc}</Text> : null}
-            <Text style={styles.clubMembers}>{club.members} members</Text>
-          </View>
+            <Text style={styles.clubMembers}>{club.members?.length || 0} members</Text>
+          </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.joinButton, club.joined && styles.joinedButton]}
-            onPress={() => handleJoinToggle(club.id)}
+            onPress={() => handleJoinToggle(club.id, club.joined)}
           >
             <Text style={[styles.joinButtonText, club.joined && styles.joinedButtonText]}>
               {club.joined ? 'JOINED' : 'JOIN'}
@@ -150,8 +171,12 @@ export default function ClubsScreen() {
               <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setModalVisible(false)}>
                 <Text style={styles.modalCancelText}>CANCEL</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalSaveBtn} onPress={handleCreateClub}>
-                <Text style={styles.modalSaveText}>CREATE</Text>
+              <TouchableOpacity 
+                style={[styles.modalSaveBtn, isSaving && { opacity: 0.5 }]} 
+                onPress={handleCreateClub}
+                disabled={isSaving}
+              >
+                {isSaving ? <ActivityIndicator color="#FFF" /> : <Text style={styles.modalSaveText}>CREATE</Text>}
               </TouchableOpacity>
             </View>
           </View>

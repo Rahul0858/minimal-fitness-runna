@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useActivity, Activity } from '../context/ActivityContext';
-import { useAuth } from '../context/AuthContext';
+import { useActivity, Activity } from '../../src/context/ActivityContext';
+import { useAuth } from '../../src/context/AuthContext';
 
 export default function ProfileScreen() {
   const { activities, streak } = useActivity();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
   // Streak data: 7 days representing last week to today
   // In a real app, calculate true/false based on activity.date matching calendar days
@@ -37,17 +37,21 @@ export default function ProfileScreen() {
     );
   };
 
-  const totalDistance = activities.reduce((acc, a) => acc + parseFloat(a.distance), 0).toFixed(1);
+  const totalDistance = activities.reduce((acc, a) => acc + (parseFloat(a.distance) || 0), 0).toFixed(1);
 
   return (
     <SafeAreaView style={styles.container}>
       
+      {/* Header with Logout */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={signOut} style={styles.logoutBtn}>
+          <Text style={styles.logoutText}>LOG OUT</Text>
+        </TouchableOpacity>
+      </View>
+      
       {/* Top Section */}
       <View style={styles.topSection}>
-        <Text style={styles.userName}>JANE DOE</Text>
-        <TouchableOpacity onPress={signOut} style={{ position: 'absolute', top: 0, right: 0, padding: 10 }}>
-          <Text style={{ fontSize: 10, color: '#999', fontWeight: 'bold' }}>LOG OUT</Text>
-        </TouchableOpacity>
+        <Text style={styles.userName}>{user?.displayName || user?.email?.split('@')[0]?.toUpperCase() || 'USER'}</Text>
         <View style={styles.userStatsContainer}>
           <View style={styles.userStatBox}>
             <Text style={styles.userStatNumber}>{totalDistance}</Text>
@@ -102,10 +106,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF',
     padding: 20,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    height: 40,
+    marginBottom: 0,
+  },
+  logoutBtn: {
+    padding: 10,
+  },
+  logoutText: {
+    fontSize: 10,
+    color: '#999',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
   topSection: {
     alignItems: 'center',
     marginBottom: 40,
-    marginTop: 20,
+    marginTop: 0,
   },
   userName: {
     fontSize: 24,

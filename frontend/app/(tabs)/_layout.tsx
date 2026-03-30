@@ -28,16 +28,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="community"
+        name="clubs"
         options={{
-          title: 'Community',
+          title: 'Clubs',
           tabBarIcon: ({ color }) => <Users size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="clubs"
+        name="challenges"
         options={{
-          title: 'Clubs',
+          title: 'Challenges',
           tabBarIcon: ({ color }) => <Trophy size={24} color={color} />,
         }}
       />

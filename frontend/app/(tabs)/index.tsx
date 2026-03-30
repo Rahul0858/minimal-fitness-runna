@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, TouchableOpacity, Platform, Modal, TextInput, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { useActivity } from '../context/ActivityContext';
+import { useActivity } from '../../src/context/ActivityContext';
 
 // Manual Haversine distance calc to avoid geolib metro bundler crash
 const getDistance = (coord1: {latitude: number, longitude: number}, coord2: {latitude: number, longitude: number}) => {
@@ -37,7 +37,7 @@ export default function HomeScreen() {
   // Refs
   const mapRef = useRef<MapView | null>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -109,13 +109,24 @@ export default function HomeScreen() {
 
   const stopTracking = () => {
     setIsTracking(false);
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
     if (locationSubscription.current) {
       locationSubscription.current.remove();
       locationSubscription.current = null;
     }
     setModalVisible(true);
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (locationSubscription.current) locationSubscription.current.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (distance > 0 && elapsedTime > 0) {
@@ -211,10 +222,10 @@ export default function HomeScreen() {
         )}
       </MapView>
       
-      <SafeAreaView style={styles.content}>
+      <SafeAreaView style={styles.content} pointerEvents="box-none">
         <View style={styles.spacer} />
 
-        <View style={styles.bottomSection}>
+        <View style={styles.bottomSection} pointerEvents="auto">
           {hasStarted && (
             <View style={styles.statsContainer}>
               <View style={styles.statBox}>
@@ -290,9 +301,9 @@ const mapStyle = [ { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFF' },
-  content: { flex: 1, justifyContent: 'space-between', padding: 20, pointerEvents: 'box-none' },
+  content: { flex: 1, justifyContent: 'space-between', padding: 20 },
   spacer: { flex: 1 },
-  bottomSection: { alignItems: 'center', paddingBottom: 20, pointerEvents: 'auto' },
+  bottomSection: { alignItems: 'center', paddingBottom: 20 },
   statsContainer: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', marginBottom: 40, backgroundColor: 'rgba(255, 255, 255, 0.9)', paddingVertical: 15, borderRadius: 8, borderWidth: 1, borderColor: '#000' },
   statBox: { alignItems: 'center' },
   statValue: { fontSize: 32, fontWeight: '300', color: '#000' },
